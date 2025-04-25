@@ -1,59 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Biểu đồ Mái Che</title>
+  <title>Hệ thống Mái che tự động</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/main.js" defer></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; }
+    #controls { margin-top: 20px; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    .status-box { margin: 10px; font-size: 18px; }
+  </style>
 </head>
 <body>
-  <h2>Biểu đồ trạng thái mái che</h2>
-  <canvas id="roofChart" width="800" height="400"></canvas>
+  <h1>Giám sát & Điều khiển Mái che</h1>
 
-  <script>
-    async function fetchData() {
-      const res = await fetch("/get-data");
-      const data = await res.json();
+  <div id="controls">
+    <button onclick="sendCommand('open')">Mở Mái che</button>
+    <button onclick="sendCommand('close')">Đóng Mái che</button>
+  </div>
 
-      const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
-      const rain = data.map(d => d.rain ? 1 : 0);
-      const light = data.map(d => d.light ? 1 : 0);
-      const roof = data.map(d => d.roof === "open" ? 1 : 0);
+  <div class="status-box">
+    <p>🌧️ Ánh Sáng: <span id="rainValue">--</span></p>
+    <p>☀️ Mưa: <span id="lightValue">--</span></p>
+    <p>🏠 Trạng thái mái che: <span id="roofStatus">--</span></p>
+  </div>
 
-      return { labels, rain, light, roof };
-    }
-
-    async function drawChart() {
-      const { labels, rain, light, roof } = await fetchData();
-
-      const ctx = document.getElementById('roofChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Mưa', data: rain, borderColor: 'blue', fill: false },
-            { label: 'Sáng', data: light, borderColor: 'orange', fill: false },
-            { label: 'Mái che mở', data: roof, borderColor: 'green', fill: false }
-          ]
-        },
-        options: {
-          scales: {
-            y: {
-              min: 0,
-              max: 1,
-              ticks: {
-                stepSize: 1,
-                callback: function(value) {
-                  return value === 1 ? 'Có' : 'Không';
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    setInterval(drawChart, 100); // cập nhật mỗi 10 giây
-    drawChart();
-  </script>
+  <canvas id="myChart" height="100"></canvas>
 </body>
 </html>

@@ -1,73 +1,43 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, jsonify, render_template
 import json
 from datetime import datetime
 
 app = Flask(__name__)
-DATA_FILE = "data.json"
+
+DATA_FILE = 'data.json'
+COMMAND_FILE = 'command.json'
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# @app.route('/data', methods=['POST'])
-# def receive_data():
-#     content = request.json
-#     entry = {
-#         "timestamp": datetime.now().isoformat(),
-#         "rain": content['rain'],
-#         "light": content['light'],
-#         "roof": content['roof']
-#     }
-
-#     try:
-#         with open(DATA_FILE, 'r') as f:
-#             data = json.load(f)
-#     except:
-#         data = []
-
-#     data.append(entry)
-#     with open(DATA_FILE, 'w') as f:
-#         json.dump(data, f)
-
-#     return jsonify({"status": "success"})1
-
 @app.route('/data', methods=['POST'])
 def receive_data():
-    try:
-        content = request.json
-        print("Received from ESP32:", content)  # In log dữ liệu nhận được
+    data = request.json
+    data['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Lưu vào file data.json
-        with open('data.json', 'r') as f:
-            data = json.load(f)
+    with open(DATA_FILE, 'a') as f:
+        f.write(json.dumps(data) + '\n')
 
-        # Thêm dữ liệu mới vào danh sách
-        data.append(content)
+    print(">> Received from ESP32:", data)
+    return jsonify({'status': 'success'}), 200
 
-        # Ghi lại dữ liệu vào file
-        with open('data.json', 'w') as f:
-            json.dump(data, f, indent=4)
-
-        return jsonify({"status": "success", "message": "Data received"}), 200
-    except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"status": "error", "message": "Failed to process data"}), 400
-
-    
-
-@app.route('/get-data')
+@app.route('/get-data', methods=['GET'])
 def get_data():
     try:
-        with open('data.json', 'r') as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = []
-    except FileNotFoundError:
-        data = []
+        with open(DATA_FILE, 'r') as f:
+            lines = f.readlines()
+            data = [json.loads(line) for line in lines[-20:]]  # trả về 20 dòng gần nhất
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
-    return jsonify(data)
-
+@app.route('/control', methods=['POST'])
+def control_roof():
+    command = request.json.get('command')
+    with open(COMMAND_FILE, 'w') as f:
+        json.dump({'command': command}, f)
+    return jsonify({'status': 'command_sent'})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=5000)
