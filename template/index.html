@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Biểu đồ Mái Che</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Biểu đồ trạng thái mái che</h2>
+  <canvas id="roofChart" width="800" height="400"></canvas>
+
+  <script>
+    async function fetchData() {
+      const res = await fetch("/get-data");
+      const data = await res.json();
+
+      const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+      const rain = data.map(d => d.rain ? 1 : 0);
+      const light = data.map(d => d.light ? 1 : 0);
+      const roof = data.map(d => d.roof === "open" ? 1 : 0);
+
+      return { labels, rain, light, roof };
+    }
+
+    async function drawChart() {
+      const { labels, rain, light, roof } = await fetchData();
+
+      const ctx = document.getElementById('roofChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Mưa', data: rain, borderColor: 'blue', fill: false },
+            { label: 'Sáng', data: light, borderColor: 'orange', fill: false },
+            { label: 'Mái che mở', data: roof, borderColor: 'green', fill: false }
+          ]
+        },
+        options: {
+          scales: {
+            y: {
+              min: 0,
+              max: 1,
+              ticks: {
+                stepSize: 1,
+                callback: function(value) {
+                  return value === 1 ? 'Có' : 'Không';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    setInterval(drawChart, 5000); // cập nhật mỗi 10 giây
+    drawChart();
+  </script>
+</body>
+</html>
